@@ -2,10 +2,22 @@
 
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
-import { AppShell, BottomNav, Card, PageHeader, PrintButton } from "@/components/AppShell";
+import {
+  AppShell,
+  BottomNav,
+  Card,
+  PageHeader,
+  PrintButton,
+} from "@/components/AppShell";
 import { kpspStages } from "@/data/kpsp";
 import { ageInMonths, todayKey } from "@/lib/store";
 import { saveScreeningFn, getUserProfileFn } from "@/lib/api";
+
+function stageAgeForMonths(months: number | null) {
+  if (months === null) return kpspStages[3]!.age;
+  const eligible = kpspStages.filter((stage) => stage.age <= months);
+  return (eligible[eligible.length - 1] ?? kpspStages[0]!).age;
+}
 
 function verdictFor(yes: number, total: number) {
   const ratio = total === 0 ? 0 : yes / total;
@@ -13,7 +25,8 @@ function verdictFor(yes: number, total: number) {
     return {
       label: "Sesuai Tahap Usia",
       tone: "bg-tile-mint text-tile-mint-foreground",
-      advice: "Perkembangan bahasa Si Kecil sesuai usianya. Lanjutkan stimulasi harian.",
+      advice:
+        "Perkembangan bahasa Si Kecil sesuai usianya. Lanjutkan stimulasi harian.",
     };
   if (ratio >= 0.5)
     return {
@@ -33,22 +46,27 @@ function verdictFor(yes: number, total: number) {
 export default function SkriningPage() {
   const [birthDate, setBirthDate] = useState("");
   const months = ageInMonths(birthDate);
-  const suggested = useMemo(() => {
-    if (months === null) return kpspStages[3]!.age;
-    const eligible = kpspStages.filter((s) => s.age <= months);
-    return (eligible[eligible.length - 1] ?? kpspStages[0]!).age;
-  }, [months]);
-
-  useEffect(() => {
-    getUserProfileFn().then((p) => { if (p?.birthDate) setBirthDate(p.birthDate); });
-  }, []);
-
+  const suggested = useMemo(() => stageAgeForMonths(months), [months]);
   const [age, setAge] = useState<number>(suggested);
   const [answers, setAnswers] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const [savingScreening, setSavingScreening] = useState(false);
 
-  const stage = kpspStages.find((s) => s.age === age) ?? kpspStages[0]!;
+  useEffect(() => {
+    getUserProfileFn().then((p) => {
+      if (p?.birthDate) setBirthDate(p.birthDate);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!birthDate) return;
+    setAge(suggested);
+    setAnswers({});
+    setSubmitted(false);
+  }, [birthDate, suggested]);
+
+  const selectedAge = birthDate ? suggested : age;
+  const stage = kpspStages.find((s) => s.age === selectedAge) ?? kpspStages[0]!;
   const yes = stage.questions.filter((q) => answers[q.id]).length;
   const answeredAll = stage.questions.every((q) => q.id in answers);
   const result = verdictFor(yes, stage.questions.length);
@@ -81,12 +99,13 @@ export default function SkriningPage() {
               <button
                 key={s.age}
                 type="button"
+                disabled={Boolean(birthDate)}
                 onClick={() => pickAge(s.age)}
                 className={`rounded-full px-3.5 py-1.5 text-xs md:text-sm font-extrabold transition-colors ${
-                  s.age === age
+                  s.age === selectedAge
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-primary-soft text-primary hover:bg-primary/20"
-                }`}
+                } ${birthDate ? "cursor-not-allowed opacity-80" : ""}`}
               >
                 {s.age} bln
               </button>
@@ -106,13 +125,18 @@ export default function SkriningPage() {
 
           <ol className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             {stage.questions.map((q, i) => (
-              <li key={q.id} className="flex flex-col justify-between rounded-3xl bg-secondary p-4">
+              <li
+                key={q.id}
+                className="flex flex-col justify-between rounded-3xl bg-secondary p-4"
+              >
                 <div>
                   <p className="text-sm md:text-base leading-relaxed font-bold text-secondary-foreground">
                     {i + 1}. {q.text}
                   </p>
                   {q.note ? (
-                    <p className="mt-1.5 text-xs text-muted-foreground">{q.note}</p>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {q.note}
+                    </p>
                   ) : null}
                 </div>
                 <div className="mt-4 flex gap-2">
@@ -159,7 +183,11 @@ export default function SkriningPage() {
             }}
             className="brand-gradient no-print mt-5 w-full rounded-full py-3.5 text-sm font-extrabold text-primary-foreground disabled:opacity-50 transition-all hover:opacity-95"
           >
-            {savingScreening ? "Menyimpan…" : answeredAll ? "Lihat Hasil Skrining" : "Jawab semua pertanyaan dulu"}
+            {savingScreening
+              ? "Menyimpan…"
+              : answeredAll
+                ? "Lihat Hasil Skrining"
+                : "Jawab semua pertanyaan dulu"}
           </button>
         </Card>
 
@@ -167,7 +195,9 @@ export default function SkriningPage() {
           <Card className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <div className={`rounded-3xl p-5 ${result.tone}`}>
-                <p className="text-xs font-bold uppercase opacity-80">Hasil Skrining</p>
+                <p className="text-xs font-bold uppercase opacity-80">
+                  Hasil Skrining
+                </p>
                 <p className="mt-1 text-xl font-extrabold">{result.label}</p>
                 <p className="mt-1 text-xs md:text-sm">
                   Jawaban &quot;Ya&quot;: {yes} dari {stage.questions.length}
@@ -185,7 +215,10 @@ export default function SkriningPage() {
                 </h3>
                 <ul className="mt-2 flex flex-col gap-2">
                   {stage.tips.map((tip) => (
-                    <li key={tip} className="flex gap-2 text-xs md:text-sm leading-relaxed text-foreground">
+                    <li
+                      key={tip}
+                      className="flex gap-2 text-xs md:text-sm leading-relaxed text-foreground"
+                    >
                       <span>💡</span>
                       <span>{tip}</span>
                     </li>
