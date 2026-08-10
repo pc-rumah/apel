@@ -1,5 +1,6 @@
 "use client";
 
+import { createContext, useContext } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -20,6 +21,28 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { ReactNode } from "react";
+
+type AppUser = { email: string; isAdmin: boolean } | null;
+
+const AuthSessionContext = createContext<AppUser | undefined>(undefined);
+
+export function AuthSessionProvider({
+  user,
+  children,
+}: {
+  user: AppUser;
+  children: ReactNode;
+}) {
+  return (
+    <AuthSessionContext.Provider value={user}>
+      {children}
+    </AuthSessionContext.Provider>
+  );
+}
+
+function useAuthSession() {
+  return useContext(AuthSessionContext);
+}
 
 const tabs = [
   { href: "/", label: "Beranda", icon: Home },
@@ -63,7 +86,9 @@ export function BottomNav() {
                     <Icon className="size-6" fill="currentColor" />
                   </span>
                 ) : (
-                  <span className={`grid size-9 place-items-center rounded-2xl transition-colors ${isActive ? "bg-primary-soft" : ""}`}>
+                  <span
+                    className={`grid size-9 place-items-center rounded-2xl transition-colors ${isActive ? "bg-primary-soft" : ""}`}
+                  >
                     <Icon className="size-5" />
                   </span>
                 )}
@@ -77,11 +102,8 @@ export function BottomNav() {
   );
 }
 
-export function DesktopSidebar({
-  user,
-}: {
-  user?: { email: string; isAdmin: boolean } | null;
-}) {
+export function DesktopSidebar({ user }: { user?: AppUser }) {
+  const sessionUser = user ?? useAuthSession() ?? null;
   const pathname = usePathname();
 
   return (
@@ -92,20 +114,28 @@ export function DesktopSidebar({
           <Sparkles className="size-5" />
         </div>
         <div>
-          <h1 className="text-xl font-extrabold tracking-tight text-foreground">SpeechPro</h1>
-          <p className="text-[0.7rem] font-bold text-muted-foreground">Stimulasi Bahasa Anak</p>
+          <h1 className="text-xl font-extrabold tracking-tight text-foreground">
+            SpeechPro
+          </h1>
+          <p className="text-[0.7rem] font-bold text-muted-foreground">
+            Stimulasi Bahasa Anak
+          </p>
         </div>
       </div>
 
       {/* User Card */}
-      {user && (
+      {sessionUser && (
         <div className="mt-4 rounded-2xl bg-secondary/70 p-3">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className="truncate text-xs font-bold text-muted-foreground">Masuk sebagai</p>
-              <p className="truncate text-sm font-extrabold text-foreground">{user.email}</p>
+              <p className="truncate text-xs font-bold text-muted-foreground">
+                Masuk sebagai
+              </p>
+              <p className="truncate text-sm font-extrabold text-foreground">
+                {sessionUser.email}
+              </p>
             </div>
-            {user.isAdmin && (
+            {sessionUser.isAdmin && (
               <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[0.65rem] font-extrabold text-primary">
                 Admin
               </span>
@@ -130,7 +160,8 @@ export function DesktopSidebar({
         </p>
         <ul className="mt-2 space-y-1">
           {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+            const isActive =
+              pathname === href || (href !== "/" && pathname.startsWith(href));
             return (
               <li key={href}>
                 <Link
@@ -141,7 +172,9 @@ export function DesktopSidebar({
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   }`}
                 >
-                  <Icon className={`size-4 ${isActive ? "text-primary-foreground" : "text-primary"}`} />
+                  <Icon
+                    className={`size-4 ${isActive ? "text-primary-foreground" : "text-primary"}`}
+                  />
                   <span>{label}</span>
                 </Link>
               </li>
@@ -150,7 +183,7 @@ export function DesktopSidebar({
         </ul>
 
         {/* Admin link */}
-        {user?.isAdmin && (
+        {sessionUser?.isAdmin && (
           <div className="mt-4 pt-4 border-t border-border/60">
             <p className="px-3 text-[0.65rem] font-extrabold uppercase tracking-wider text-muted-foreground mb-2">
               Admin
@@ -235,10 +268,18 @@ export function NotifBell() {
   );
 }
 
-export function AppShell({ children, user }: { children: ReactNode; user?: { email: string; isAdmin: boolean } | null }) {
+export function AppShell({
+  children,
+  user,
+}: {
+  children: ReactNode;
+  user?: AppUser;
+}) {
+  const sessionUser = user ?? useAuthSession() ?? null;
+
   return (
     <div className="flex min-h-screen bg-[oklch(0.975_0.012_300)] dark:bg-background text-foreground flex-col md:flex-row">
-      <DesktopSidebar user={user} />
+      <DesktopSidebar user={sessionUser} />
       <div className="print-area flex-1 flex flex-col min-w-0 w-full max-w-full md:max-w-5xl lg:max-w-6xl mx-auto pb-24 md:pb-10 px-0 sm:px-4 md:px-6 py-0 md:py-6">
         <div className="w-full flex-1 flex flex-col bg-background shadow-sm md:shadow-[var(--shadow-soft)] sm:rounded-[2rem] overflow-hidden">
           {children}
@@ -275,9 +316,13 @@ export function SectionTitle({
 }) {
   return (
     <div className="mb-3 flex min-w-0 items-start gap-2">
-      {icon ? <span className="shrink-0 text-lg leading-none">{icon}</span> : null}
+      {icon ? (
+        <span className="shrink-0 text-lg leading-none">{icon}</span>
+      ) : null}
       <div className="min-w-0">
-        <h2 className="text-base font-extrabold text-secondary-foreground">{children}</h2>
+        <h2 className="text-base font-extrabold text-secondary-foreground">
+          {children}
+        </h2>
         {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
       </div>
     </div>
