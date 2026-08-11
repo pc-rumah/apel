@@ -2,6 +2,7 @@ export type KpspQuestion = {
   id: string;
   text: string;
   note?: string;
+  image?: string;
 };
 
 export type KpspStage = {
@@ -143,6 +144,7 @@ export const kpspStages: KpspStage[] = [
       {
         id: "30-2",
         text: "Apakah anak dapat menyebut 2 gambar yang diperlihatkan tanpa bantuan?",
+        image: "/skrinning/soal30bln.webp",
       },
       {
         id: "30-3",
@@ -163,11 +165,12 @@ export const kpspStages: KpspStage[] = [
     questions: [
       {
         id: "36-1",
-        text: "Apakah anak dapat menyebut 2 gambar yang diperlihatkan tanpa bantuan?",
+        text: 'Dapatkah anak menggunakan 2 kata berangkai saat berbicara seperti "minta minum" atau "mau tidur"?',
       },
       {
         id: "36-2",
-        text: 'Dapatkah anak menggunakan 2 kata berangkai saat berbicara seperti "minta minum" atau "mau tidur"?',
+        text: "Apakah anak dapat menyebut 2 gambar yang diperlihatkan tanpa bantuan?",
+        image: "/skrinning/soal36bln.webp",
       },
       {
         id: "36-3",

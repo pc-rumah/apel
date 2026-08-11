@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState, useEffect } from "react";
 import {
   AppShell,
@@ -136,6 +137,17 @@ export default function SkriningPage() {
                     <p className="mt-1.5 text-xs text-muted-foreground">
                       {q.note}
                     </p>
+                  ) : null}
+                  {q.image ? (
+                    <div className="relative mt-3 w-full h-44 sm:h-48 md:h-52 rounded-2xl overflow-hidden bg-white dark:bg-card/60 flex items-center justify-center border border-border/20 shadow-xs">
+                      <Image
+                        src={q.image}
+                        alt={q.text}
+                        fill
+                        className="object-contain p-2"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                      />
+                    </div>
                   ) : null}
                 </div>
                 <div className="mt-4 flex gap-2">
