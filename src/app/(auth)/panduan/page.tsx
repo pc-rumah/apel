@@ -56,7 +56,7 @@ export default function PanduanPage() {
             </div>
             <div className="overflow-hidden rounded-3xl bg-muted h-64 md:h-80 shadow-sm border border-border/40">
               <img
-                src="/asset/gambar 1.webp"
+                src="/panduan/gambar 1.webp"
                 alt="Ibu membaca buku bersama anak"
                 className="h-full w-full object-cover"
               />
@@ -150,7 +150,7 @@ export default function PanduanPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
               <div className="overflow-hidden rounded-3xl bg-muted h-64 md:h-full min-h-[220px]">
                 <img
-                  src="/asset/gambar 2.webp"
+                  src="/panduan/gambar 2.webp"
                   alt="Ibu dan anak bermain balok kayu"
                   className="h-full w-full object-cover"
                 />
@@ -262,7 +262,7 @@ export default function PanduanPage() {
 
               <div className="overflow-hidden rounded-3xl bg-muted h-64 md:h-full min-h-[240px]">
                 <img
-                  src="/asset/gambar 3.webp"
+                  src="/panduan/gambar 3.webp"
                   alt="Anak di meja belajar dengan tablet"
                   className="h-full w-full object-cover"
                 />
@@ -287,7 +287,7 @@ export default function PanduanPage() {
             <Card className="md:col-span-2 p-0 overflow-hidden border border-border/60 flex flex-col justify-between">
               <div className="relative h-56 md:h-64 w-full bg-muted">
                 <img
-                  src="/asset/gambar 3.webp"
+                  src="/panduan/gambar 3.webp"
                   alt="Membangun Imajinasi Bersama"
                   className="h-full w-full object-cover"
                 />
