@@ -5,6 +5,7 @@ export type WordCategory = {
   emoji: string;
   words: string[];
   when: string[];
+  description?: string;
 };
 
 export type LatihanSheet = {
@@ -25,37 +26,43 @@ export const latihanSheets: Record<AgeBandId, LatihanSheet> = {
       {
         title: "Sapaan & Sentuhan",
         emoji: "🙂",
-        words: ["hai", "sayang", "nak", "dear"],
+        description: "Membangun ikatan melalui kata-kata lembut dan sapaan harian.",
+        words: ["Halo sayang", "Hai", "Sayang"],
         when: ["Saat menyapa, menatap, atau menyentuh Si Kecil."],
-      },
-      {
-        title: "Kasih Sayang",
-        emoji: "💚",
-        words: ["cinta", "sayang", "kesayangan"],
-        when: ["Saat memeluk, menggendong, atau menenangkan Si Kecil."],
-      },
-      {
-        title: "Kebutuhan",
-        emoji: "🍼",
-        words: ["susu", "minum", "makan", "popok", "tidur"],
-        when: ["Saat memberi makan, mengganti popok, atau saat tidur."],
       },
       {
         title: "Suara & Bunyi",
         emoji: "🎵",
-        words: ["kring", "tok", "duh", "wee", "aah", "ohh"],
+        description: "Mengenalkan berbagai bunyi untuk merangsang pendengaran dan respons.",
+        words: ["Kring kring", "Tok tok", "Ciaaa"],
         when: ["Saat bermain, menggoyang mainan, atau saat Si Kecil mengeluarkan suara."],
+      },
+      {
+        title: "Kebutuhan",
+        emoji: "🍼",
+        description: "Mengajarkan kata-kata dasar untuk mengomunikasikan rasa lapar, haus, atau lelah.",
+        words: ["Nen/Susu", "Makan", "Mandi", "Bobo"],
+        when: ["Saat memberi makan, mengganti popok, atau saat tidur."],
+      },
+      {
+        title: "Kasih Sayang",
+        emoji: "💚",
+        description: "Membangun ikatan emosional melalui pelukan dan ungkapan sayang.",
+        words: ["I love you", "Peluk", "Sayang"],
+        when: ["Saat memeluk, menggendong, atau menenangkan Si Kecil."],
       },
       {
         title: "Kegiatan Sehari-hari",
         emoji: "🌸",
-        words: ["mandi", "bersih", "ganti", "main", "jalan-jalan"],
+        description: "Mengenalkan rutinitas dengan mengasosiasikan tindakan dengan kata yang sederhana.",
+        words: ["Ayo", "Bersih", "Ganti"],
         when: ["Saat melakukan rutinitas harian bersama Si Kecil."],
       },
       {
         title: "Waktu Istirahat",
         emoji: "🌙",
-        words: ["tidur", "ngantuk", "istirahat", "selamat malam"],
+        description: "Menciptakan suasana tenang sebelum tidur dengan kata-kata yang menyejukkan.",
+        words: ["Bobo", "Mimpi indah", "Sshhh"],
         when: ["Saat menjelang tidur siang atau tidur malam."],
       },
     ],

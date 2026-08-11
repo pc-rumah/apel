@@ -65,8 +65,7 @@ export default function SkriningPage() {
     setSubmitted(false);
   }, [birthDate, suggested]);
 
-  const selectedAge = birthDate ? suggested : age;
-  const stage = kpspStages.find((s) => s.age === selectedAge) ?? kpspStages[0]!;
+  const stage = kpspStages.find((s) => s.age === age) ?? kpspStages[0]!;
   const yes = stage.questions.filter((q) => answers[q.id]).length;
   const answeredAll = stage.questions.every((q) => q.id in answers);
   const result = verdictFor(yes, stage.questions.length);
@@ -92,22 +91,22 @@ export default function SkriningPage() {
           <p className="mt-1 text-xs md:text-sm text-muted-foreground">
             {months === null
               ? "Isi tanggal lahir di Profil agar usia terpilih otomatis."
-              : `Usia Si Kecil saat ini ${months} bulan.`}
+              : `Usia Si Kecil saat ini ${months} bulan. Kategori otomatis terpilih, tetapi Anda dapat memilih usia lainnya.`}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {kpspStages.map((s) => (
               <button
                 key={s.age}
                 type="button"
-                disabled={Boolean(birthDate)}
                 onClick={() => pickAge(s.age)}
                 className={`rounded-full px-3.5 py-1.5 text-xs md:text-sm font-extrabold transition-colors ${
-                  s.age === selectedAge
+                  s.age === age
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-primary-soft text-primary hover:bg-primary/20"
-                } ${birthDate ? "cursor-not-allowed opacity-80" : ""}`}
+                }`}
               >
                 {s.age} bln
+                {birthDate && s.age === suggested ? " (Sesuai Usia)" : ""}
               </button>
             ))}
           </div>

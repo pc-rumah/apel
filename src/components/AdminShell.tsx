@@ -53,11 +53,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 <li key={href}>
                   <Link
                     href={href}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold transition-colors ${
-                      isActive
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold transition-colors ${isActive
                         ? "bg-primary text-primary-foreground shadow-sm"
                         : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    }`}
+                      }`}
                   >
                     <Icon className={`size-4 ${isActive ? "text-primary-foreground" : "text-primary"}`} />
                     <span>{label}</span>
