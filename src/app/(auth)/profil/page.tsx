@@ -4,14 +4,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppShell, BottomNav, Card, PageHeader } from "@/components/AppShell";
+import { useAuthSession } from "@/components/AppShell";
 import { bandLabel } from "@/data/ages";
 import { ageInMonths, bandForMonths } from "@/lib/store";
-import { getUserProfileFn, saveUserProfileFn, getUserLogsFn, getUserScreeningsFn, resetUserDataFn } from "@/lib/api";
+import {
+  getUserProfileFn,
+  saveUserProfileFn,
+  getUserLogsFn,
+  getUserScreeningsFn,
+  resetUserDataFn,
+} from "@/lib/api";
 import { logoutFn } from "@/lib/auth";
-import { LogOut, Save, Trash2 } from "lucide-react";
+import { LogOut, Save, ShieldCheck, Trash2 } from "lucide-react";
 
 export default function ProfilPage() {
   const router = useRouter();
+  const sessionUser = useAuthSession();
   const [userEmail, setUserEmail] = useState("");
   const [name, setName] = useState("");
   const [birthDate, setBirthDate] = useState("");
@@ -40,7 +48,9 @@ export default function ProfilPage() {
     setSaving(true);
     setError(null);
     try {
-      await saveUserProfileFn({ data: { name: name.trim() || "Si Kecil", birthDate } });
+      await saveUserProfileFn({
+        data: { name: name.trim() || "Si Kecil", birthDate },
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -58,7 +68,12 @@ export default function ProfilPage() {
   }
 
   async function handleReset() {
-    if (!window.confirm("Hapus semua data SpeechPro di akun ini? Tindakan ini tidak bisa dibatalkan.")) return;
+    if (
+      !window.confirm(
+        "Hapus semua data SpeechPro di akun ini? Tindakan ini tidak bisa dibatalkan.",
+      )
+    )
+      return;
     await resetUserDataFn();
     setName("");
     setBirthDate("");
@@ -88,7 +103,10 @@ export default function ProfilPage() {
       <main className="flex flex-col gap-5 px-4 md:px-8 pt-4 pb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Card>
-            <label className="text-sm font-extrabold text-secondary-foreground" htmlFor="name">
+            <label
+              className="text-sm font-extrabold text-secondary-foreground"
+              htmlFor="name"
+            >
               Nama anak
             </label>
             <input
@@ -126,32 +144,44 @@ export default function ProfilPage() {
               {saving ? "Menyimpan…" : "Simpan Profil"}
             </button>
             {saved ? (
-              <p className="mt-2 text-center text-xs font-bold text-success">Profil tersimpan 🎉</p>
+              <p className="mt-2 text-center text-xs font-bold text-success">
+                Profil tersimpan 🎉
+              </p>
             ) : null}
           </Card>
 
           <div className="flex flex-col justify-between gap-4">
             <Card className="flex-1 flex flex-col justify-between">
               <div>
-                <h2 className="text-base md:text-lg font-extrabold text-secondary-foreground">Ringkasan Profil</h2>
+                <h2 className="text-base md:text-lg font-extrabold text-secondary-foreground">
+                  Ringkasan Profil
+                </h2>
                 <ul className="mt-3 flex flex-col gap-2 text-xs md:text-sm text-muted-foreground">
                   <li className="flex justify-between border-b border-border/50 pb-2">
                     <span>Akun:</span>
-                    <span className="font-bold text-foreground truncate max-w-[140px]">{userEmail || "—"}</span>
+                    <span className="font-bold text-foreground truncate max-w-[140px]">
+                      {userEmail || "—"}
+                    </span>
                   </li>
                   <li className="flex justify-between border-b border-border/50 pb-2">
                     <span>Usia:</span>
                     <span className="font-bold text-foreground">
-                      {months === null ? "belum diisi" : `${months} bulan (${bandLabel(bandForMonths(months))})`}
+                      {months === null
+                        ? "belum diisi"
+                        : `${months} bulan (${bandLabel(bandForMonths(months))})`}
                     </span>
                   </li>
                   <li className="flex justify-between border-b border-border/50 pb-2">
                     <span>Catatan harian:</span>
-                    <span className="font-bold text-foreground">{logCount} kali</span>
+                    <span className="font-bold text-foreground">
+                      {logCount} kali
+                    </span>
                   </li>
                   <li className="flex justify-between">
                     <span>Skrining KPSP:</span>
-                    <span className="font-bold text-foreground">{screeningCount} kali</span>
+                    <span className="font-bold text-foreground">
+                      {screeningCount} kali
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -161,6 +191,15 @@ export default function ProfilPage() {
               >
                 Baca Panduan Orang Tua
               </Link>
+              {sessionUser?.isAdmin ? (
+                <Link
+                  href="/admin"
+                  className="mt-2 inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 px-4 py-2.5 text-xs font-extrabold text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                >
+                  <ShieldCheck className="size-4" />
+                  Buka Admin Dashboard
+                </Link>
+              ) : null}
             </Card>
           </div>
         </div>

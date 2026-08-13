@@ -40,7 +40,7 @@ export function AuthSessionProvider({
   );
 }
 
-function useAuthSession() {
+export function useAuthSession() {
   return useContext(AuthSessionContext);
 }
 
