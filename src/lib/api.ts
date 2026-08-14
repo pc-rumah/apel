@@ -424,3 +424,115 @@ export async function adminToggleAdminFn(input: {
 
   return { success: true };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin: dashboard aggregate stats
+// ─────────────────────────────────────────────────────────────────────────────
+export async function adminGetDashboardStatsFn() {
+  const userId = await requireUserId();
+  const me = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  if (!me?.isAdmin) throw new Error("Forbidden");
+
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+  // All users for recency checks
+  const allUsers = await db.query.users.findMany();
+  const newUsersCount = allUsers.filter(
+    (u) => new Date(u.createdAt) >= sevenDaysAgo
+  ).length;
+
+  // Active users: at least 1 log in last 7 days
+  const recentLogs = await db.query.dailyLogs.findMany();
+  const activeUserIds = new Set(
+    recentLogs
+      .filter((l) => l.date >= sevenDaysAgoStr)
+      .map((l) => l.userId)
+  );
+  const activeUsersCount = activeUserIds.size;
+
+  // Activity chart: count logs per day for last 30 days
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().slice(0, 10);
+  const logCountByDate: Record<string, number> = {};
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(thirtyDaysAgo.getTime() + i * 24 * 60 * 60 * 1000);
+    logCountByDate[d.toISOString().slice(0, 10)] = 0;
+  }
+  for (const l of recentLogs) {
+    if (l.date >= thirtyDaysAgoStr) {
+      logCountByDate[l.date] = (logCountByDate[l.date] ?? 0) + 1;
+    }
+  }
+  const activityChart = Object.entries(logCountByDate)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, count]) => ({ date, count }));
+
+  // Screening verdict distribution
+  const allScreenings = await db.query.screeningResults.findMany();
+  const verdictCount: Record<string, number> = {};
+  for (const s of allScreenings) {
+    verdictCount[s.verdict] = (verdictCount[s.verdict] ?? 0) + 1;
+  }
+  const verdictChart = Object.entries(verdictCount).map(([verdict, count]) => ({
+    verdict,
+    count,
+  }));
+
+  // Children needing attention: latest screening per child with "Meragukan" or "Penyimpangan"
+  // Group screenings by userId, pick latest per user
+  const screeningsByUser: Record<string, typeof allScreenings[number]> = {};
+  for (const s of allScreenings) {
+    const existing = screeningsByUser[s.userId];
+    if (!existing || s.createdAt > existing.createdAt) {
+      screeningsByUser[s.userId] = s;
+    }
+  }
+  const needsAttentionScreenings = Object.values(screeningsByUser).filter(
+    (s) =>
+      s.verdict.toLowerCase().includes("meragukan") ||
+      s.verdict.toLowerCase().includes("penyimpangan")
+  );
+
+  // Enrich with child profile info
+  const needsAttention = await Promise.all(
+    needsAttentionScreenings.map(async (s) => {
+      const profile = await db.query.childProfiles.findFirst({
+        where: eq(childProfiles.userId, s.userId),
+      });
+      return {
+        userId: s.userId,
+        childName: profile?.name ?? "—",
+        age: s.age,
+        verdict: s.verdict,
+        date: s.date,
+      };
+    })
+  );
+
+  return {
+    newUsersCount,
+    activeUsersCount,
+    activityChart,
+    verdictChart,
+    needsAttention,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin: delete user
+// ─────────────────────────────────────────────────────────────────────────────
+export async function adminDeleteUserFn(input: { data: { targetUserId: string } }) {
+  const data = z.object({ targetUserId: z.string() }).parse(input.data);
+  const userId = await requireUserId();
+  const me = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  if (!me?.isAdmin) throw new Error("Forbidden");
+  if (data.targetUserId === userId) throw new Error("Cannot delete yourself");
+
+  // Cascade: childProfiles → dailyLogs, screeningResults, parentNotes are cascade-deleted
+  await db.delete(childProfiles).where(eq(childProfiles.userId, data.targetUserId));
+  await db.delete(users).where(eq(users.id, data.targetUserId));
+
+  return { success: true };
+}
