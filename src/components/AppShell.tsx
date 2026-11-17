@@ -103,7 +103,8 @@ export function BottomNav() {
 }
 
 export function DesktopSidebar({ user }: { user?: AppUser }) {
-  const sessionUser = user ?? useAuthSession() ?? null;
+  const hookUser = useAuthSession();
+  const sessionUser = user ?? hookUser ?? null;
   const pathname = usePathname();
 
   return (
@@ -275,7 +276,8 @@ export function AppShell({
   children: ReactNode;
   user?: AppUser;
 }) {
-  const sessionUser = user ?? useAuthSession() ?? null;
+  const hookUser = useAuthSession();
+  const sessionUser = user ?? hookUser ?? null;
 
   return (
     <div className="flex min-h-screen bg-[oklch(0.975_0.012_300)] dark:bg-background text-foreground flex-col md:flex-row">

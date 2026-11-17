@@ -1,10 +1,10 @@
 "use server";
 
-import { createServerClient, parseCookieHeader, serializeCookieHeader } from "@supabase/ssr";
+import { createServerClient, parseCookieHeader } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { db, users } from "@/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: build a Supabase server client wired to Next.js cookies
@@ -46,10 +46,31 @@ export async function getSessionFn() {
     where: eq(users.id, user.id),
   });
 
+  const defaultAdminEmail = (
+    process.env["DEFAULT_ADMIN_EMAIL"] ||
+    process.env["ADMIN_EMAIL"]
+  )?.toLowerCase().trim();
+
+  const isDefaultAdmin = !!(
+    defaultAdminEmail &&
+    user.email &&
+    user.email.toLowerCase() === defaultAdminEmail
+  );
+
+  const isAdmin = isDefaultAdmin || (dbUser?.isAdmin ?? false);
+
+  if (isDefaultAdmin && dbUser && !dbUser.isAdmin) {
+    try {
+      await db.update(users).set({ isAdmin: true }).where(eq(users.id, user.id));
+    } catch {
+      // Non-critical background update failure
+    }
+  }
+
   return {
     id: user.id,
     email: user.email ?? "",
-    isAdmin: dbUser?.isAdmin ?? false,
+    isAdmin,
   };
 }
 
@@ -69,7 +90,117 @@ export async function loginFn(input: { data: { email: string; password: string }
     password: data.password,
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    const defaultAdminEmail = (
+      process.env["DEFAULT_ADMIN_EMAIL"] ||
+      process.env["ADMIN_EMAIL"]
+    )?.trim();
+    const defaultAdminPass = (
+      process.env["DEFAULT_ADMIN_PASSWORD"] ||
+      process.env["ADMIN_PASSWORD"]
+    )?.trim();
+
+    // If default admin failed (not created yet or email not confirmed), auto-provision & confirm
+    if (
+      defaultAdminEmail &&
+      defaultAdminPass &&
+      data.email.toLowerCase() === defaultAdminEmail.toLowerCase() &&
+      data.password === defaultAdminPass
+    ) {
+      // If user already exists with unconfirmed email, confirm it first
+      try {
+        await db.execute(
+          sql`UPDATE auth.users SET email_confirmed_at = COALESCE(email_confirmed_at, NOW()) WHERE lower(email) = lower(${defaultAdminEmail})`,
+        );
+      } catch {
+        // Ignore if auth.users update isn't permitted
+      }
+
+      const retryExisting = await supabase.auth.signInWithPassword({
+        email: defaultAdminEmail,
+        password: defaultAdminPass,
+      });
+
+      if (!retryExisting.error && retryExisting.data.user) {
+        await db
+          .insert(users)
+          .values({
+            id: retryExisting.data.user.id,
+            email: defaultAdminEmail,
+            isAdmin: true,
+          })
+          .onConflictDoUpdate({
+            target: users.id,
+            set: { isAdmin: true },
+          });
+        return { success: true };
+      }
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: defaultAdminEmail,
+        password: defaultAdminPass,
+      });
+
+      if (!signUpError && signUpData.user) {
+        try {
+          await db.execute(
+            sql`UPDATE auth.users SET email_confirmed_at = COALESCE(email_confirmed_at, NOW()) WHERE id = ${signUpData.user.id}::uuid`,
+          );
+        } catch {
+          // Ignore if auth.users update isn't permitted
+        }
+
+        await db
+          .insert(users)
+          .values({
+            id: signUpData.user.id,
+            email: defaultAdminEmail,
+            isAdmin: true,
+          })
+          .onConflictDoUpdate({
+            target: users.id,
+            set: { isAdmin: true },
+          });
+
+        const retry = await supabase.auth.signInWithPassword({
+          email: defaultAdminEmail,
+          password: defaultAdminPass,
+        });
+
+        if (!retry.error) {
+          return { success: true };
+        }
+      }
+    }
+
+    throw new Error(error.message);
+  }
+
+  // Ensure default admin in env has isAdmin: true in db upon successful login
+  const defaultAdminEmail = (
+    process.env["DEFAULT_ADMIN_EMAIL"] ||
+    process.env["ADMIN_EMAIL"]
+  )?.toLowerCase().trim();
+
+  if (defaultAdminEmail && data.email.toLowerCase() === defaultAdminEmail) {
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData?.user) {
+      await db
+        .insert(users)
+        .values({
+          id: userData.user.id,
+          email: data.email,
+          isAdmin: true,
+        })
+        .onConflictDoNothing();
+
+      await db
+        .update(users)
+        .set({ isAdmin: true })
+        .where(eq(users.id, userData.user.id));
+    }
+  }
+
   return { success: true };
 }
 
@@ -92,13 +223,23 @@ export async function registerFn(input: { data: { email: string; password: strin
   if (error) throw new Error(error.message);
   if (!authData.user) throw new Error("Registrasi gagal");
 
+  const defaultAdminEmail = (
+    process.env["DEFAULT_ADMIN_EMAIL"] ||
+    process.env["ADMIN_EMAIL"]
+  )?.toLowerCase().trim();
+
+  const isDefaultAdmin = !!(
+    defaultAdminEmail &&
+    data.email.toLowerCase() === defaultAdminEmail
+  );
+
   // Insert into our users table
   await db
     .insert(users)
     .values({
       id: authData.user.id,
       email: data.email,
-      isAdmin: false,
+      isAdmin: isDefaultAdmin,
     })
     .onConflictDoNothing();
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerClient, parseCookieHeader, serializeCookieHeader } from "@supabase/ssr";
+import { createServerClient, parseCookieHeader } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { db, childProfiles, dailyLogs, screeningResults, parentNotes, users } from "@/db";

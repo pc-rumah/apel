@@ -6,7 +6,7 @@ import { AppShell, BottomNav, PrintButton } from "@/components/AppShell";
 import { ageBands, bandLabel, type AgeBandId } from "@/data/ages";
 import { latihanSheets, type WordCategory } from "@/data/latihan";
 import { ageInMonths, bandForMonths, useSpeechPro } from "@/lib/store";
-import { Lightbulb, CheckCircle2, Sparkles, BookOpen } from "lucide-react";
+import { Lightbulb, CheckCircle2, BookOpen } from "lucide-react";
 
 const categoryImageMap: Record<string, string> = {
   "Sapaan & Sentuhan": "/latihan/sapaan.webp",
@@ -211,7 +211,7 @@ export default function LatihanPage() {
           {/* CLOSING CARD & PRINT BUTTON */}
           <div className="bg-white dark:bg-card rounded-3xl p-6 border border-slate-100 dark:border-border/40 shadow-xs text-center space-y-4">
             <p className="text-xs md:text-sm font-semibold text-[#0b1c30] dark:text-foreground max-w-3xl mx-auto leading-relaxed">
-              "{sheet.closing}"
+              &ldquo;{sheet.closing}&rdquo;
             </p>
             <div className="pt-2 max-w-md mx-auto">
               <PrintButton label="Cetak Lembar Latihan" />

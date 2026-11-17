@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { AppShell, BottomNav, Card, PageHeader, PrintButton } from "@/components/AppShell";
+import { AppShell, BottomNav, Card, PageHeader } from "@/components/AppShell";
 import family from "@/assets/family.png";
 import {
   Heart,
@@ -19,8 +18,6 @@ import {
 } from "lucide-react";
 
 export default function PanduanPage() {
-  const [completedCount] = useState(3);
-
   return (
     <AppShell>
       <PageHeader

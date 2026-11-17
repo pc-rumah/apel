@@ -20,7 +20,7 @@ import { LogOut, Save, ShieldCheck, Trash2 } from "lucide-react";
 export default function ProfilPage() {
   const router = useRouter();
   const sessionUser = useAuthSession();
-  const [userEmail, setUserEmail] = useState("");
+  const userEmail = sessionUser?.email ?? "";
   const [name, setName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [logCount, setLogCount] = useState(0);
