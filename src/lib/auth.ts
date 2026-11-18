@@ -21,9 +21,13 @@ async function createSupabaseServerClient() {
           return parseCookieHeader(cookieStore.toString());
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // Ignored when called from a Server Component
+          }
         },
       },
     },
@@ -82,8 +86,21 @@ const LoginSchema = z.object({
   password: z.string().min(6, "Password minimal 6 karakter"),
 });
 
-export async function loginFn(input: { data: { email: string; password: string } }) {
-  const data = LoginSchema.parse(input.data);
+export type AuthActionResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function loginFn(input: {
+  data: { email: string; password: string };
+}): Promise<AuthActionResult> {
+  const parsed = LoginSchema.safeParse(input.data);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Data login tidak valid",
+    };
+  }
+  const data = parsed.data;
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword({
     email: data.email,
@@ -173,7 +190,7 @@ export async function loginFn(input: { data: { email: string; password: string }
       }
     }
 
-    throw new Error(error.message);
+    return { success: false, error: error.message };
   }
 
   // Ensure default admin in env has isAdmin: true in db upon successful login
@@ -212,38 +229,74 @@ const RegisterSchema = z.object({
   password: z.string().min(6, "Password minimal 6 karakter"),
 });
 
-export async function registerFn(input: { data: { email: string; password: string } }) {
-  const data = RegisterSchema.parse(input.data);
-  const supabase = await createSupabaseServerClient();
-  const { data: authData, error } = await supabase.auth.signUp({
-    email: data.email,
-    password: data.password,
-  });
-
-  if (error) throw new Error(error.message);
-  if (!authData.user) throw new Error("Registrasi gagal");
-
-  const defaultAdminEmail = (
-    process.env["DEFAULT_ADMIN_EMAIL"] ||
-    process.env["ADMIN_EMAIL"]
-  )?.toLowerCase().trim();
-
-  const isDefaultAdmin = !!(
-    defaultAdminEmail &&
-    data.email.toLowerCase() === defaultAdminEmail
-  );
-
-  // Insert into our users table
-  await db
-    .insert(users)
-    .values({
-      id: authData.user.id,
+export async function registerFn(input: {
+  data: { email: string; password: string };
+}): Promise<AuthActionResult> {
+  try {
+    const parsed = RegisterSchema.safeParse(input.data);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "Data registrasi tidak valid",
+      };
+    }
+    const data = parsed.data;
+    const supabase = await createSupabaseServerClient();
+    const { data: authData, error } = await supabase.auth.signUp({
       email: data.email,
-      isAdmin: isDefaultAdmin,
-    })
-    .onConflictDoNothing();
+      password: data.password,
+    });
 
-  return { success: true };
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    if (!authData.user) {
+      return { success: false, error: "Registrasi gagal" };
+    }
+
+    const defaultAdminEmail = (
+      process.env["DEFAULT_ADMIN_EMAIL"] ||
+      process.env["ADMIN_EMAIL"]
+    )?.toLowerCase().trim();
+
+    const isDefaultAdmin = !!(
+      defaultAdminEmail &&
+      data.email.toLowerCase() === defaultAdminEmail
+    );
+
+    // Insert into our users table
+    await db
+      .insert(users)
+      .values({
+        id: authData.user.id,
+        email: data.email,
+        isAdmin: isDefaultAdmin,
+      })
+      .onConflictDoNothing();
+
+    // If Supabase email confirmation is enabled and no session was issued,
+    // confirm email in auth.users and sign in so the user can proceed immediately
+    if (!authData.session) {
+      try {
+        await db.execute(
+          sql`UPDATE auth.users SET email_confirmed_at = COALESCE(email_confirmed_at, NOW()) WHERE id = ${authData.user.id}::uuid`,
+        );
+        await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+      } catch {
+        // If auto-confirm fails, user can still log in after confirming via email
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Registrasi gagal",
+    };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

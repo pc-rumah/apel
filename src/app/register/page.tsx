@@ -30,7 +30,11 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await registerFn({ data: { email, password } });
+      const res = await registerFn({ data: { email, password } });
+      if (!res.success) {
+        setError(res.error);
+        return;
+      }
       router.push("/");
       router.refresh();
     } catch (err) {

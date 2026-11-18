@@ -20,9 +20,13 @@ async function createSupabaseServerClient() {
           return parseCookieHeader(cookieStore.toString());
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // Ignored when called from a Server Component
+          }
         },
       },
     },

@@ -19,7 +19,11 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await loginFn({ data: { email, password } });
+      const res = await loginFn({ data: { email, password } });
+      if (!res.success) {
+        setError(res.error);
+        return;
+      }
       router.push("/");
       router.refresh();
     } catch (err) {
